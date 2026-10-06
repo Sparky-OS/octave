@@ -45,6 +45,7 @@
 #include <QToolBar>
 #include <QWindow>
 #include <QScreen>
+#include <QSurfaceFormat>
 
 #include "Canvas.h"
 #include "Container.h"
@@ -110,7 +111,30 @@ Figure *
 Figure::create (octave::interpreter& interp,
                 const graphics_object& go)
 {
-  return new Figure (interp, go, new FigureWindow ());
+  const auto *fp
+    = dynamic_cast<const figure::properties *> (&go.get_properties ());
+
+  // The surface format of a top-level window is fixed when its native
+  // window is created, so a stereo figure creates it with stereo.  The
+  // default format is restored for the windows made after it.
+  QSurfaceFormat format = QSurfaceFormat::defaultFormat ();
+
+  if (fp && fp->is_stereo ())
+    {
+      QSurfaceFormat stereo_format = format;
+      stereo_format.setStereo (true);
+      QSurfaceFormat::setDefaultFormat (stereo_format);
+    }
+
+  FigureWindow *win = new FigureWindow ();
+  Figure *fig = new Figure (interp, go, win);
+
+  if (fp && fp->is_stereo ())
+    win->winId ();
+
+  QSurfaceFormat::setDefaultFormat (format);
+
+  return fig;
 }
 
 Figure::Figure (octave::interpreter& interp,
@@ -404,6 +428,10 @@ Figure::update (int pId)
     case figure::properties::ID_NAME:
     case figure::properties::ID_NUMBERTITLE:
       win->setWindowTitle (Utils::fromStdString (fp.get_title ()));
+      break;
+
+    case figure::properties::ID_STEREOEYESEPARATION:
+      redraw ();
       break;
 
     case figure::properties::ID_VISIBLE:

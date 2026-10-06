@@ -44,7 +44,7 @@ class GLWidget : public QOpenGLWidget
 
 public:
 
-  GLWidget (Canvas& parent_canvas, QWidget *parent);
+  GLWidget (Canvas& parent_canvas, QWidget *parent, bool stereo = false);
 
   ~GLWidget ();
 
@@ -83,6 +83,9 @@ private:
 
   QOpenGLContext m_os_context;
   QOffscreenSurface m_os_surface;
+
+  bool m_stereo;
+  int m_stereo_eye;
 };
 
 class GLCanvas : public Canvas

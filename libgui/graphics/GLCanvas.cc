@@ -37,10 +37,14 @@
 
 OCTAVE_BEGIN_NAMESPACE(octave)
 
-GLWidget::GLWidget (Canvas& parent_canvas, QWidget *parent)
+GLWidget::GLWidget (Canvas& parent_canvas, QWidget *parent, bool stereo)
   : QOpenGLWidget (parent), m_parent_canvas (parent_canvas),
-    m_glfcns (), m_renderer (m_glfcns)
+    m_glfcns (), m_renderer (m_glfcns), m_stereo (stereo), m_stereo_eye (0)
 {
+  QSurfaceFormat format = QSurfaceFormat::defaultFormat ();
+  format.setStereo (stereo);
+  setFormat (format);
+
   setFocusPolicy (Qt::ClickFocus);
   setFocus ();
   setUpdateBehavior (QOpenGLWidget::PartialUpdate);
@@ -75,8 +79,10 @@ GLWidget::draw (graphics_object go)
 
       graphics_object fig = go.get_ancestor ("figure");
       double dpr = fig.get ("__device_pixel_ratio__").double_value ();
+      double separation = fig.get ("stereoeyeseparation").double_value ();
       m_renderer.set_viewport (dpr * width (), dpr * height ());
       m_renderer.set_device_pixel_ratio (dpr);
+      m_renderer.set_stereo_eye (m_stereo ? m_stereo_eye : 0, separation);
 
       m_renderer.draw (go);
     }
@@ -98,6 +104,8 @@ GLWidget::do_getPixels (graphics_object go)
         return uint8NDArray ();
 
       unwind_action reset_current ([this] () { end_rendering (); });
+
+      m_renderer.set_stereo_eye (0, 0.0);
 
       // When the figure is not visible or its size is frozen for printing,
       // we use a framebuffer object to make sure we are rendering on a
@@ -142,6 +150,8 @@ GLWidget::do_print (const QString& file_cmd, const QString& term,
         return;
 
       unwind_action reset_current ([this] () { end_rendering (); });
+
+      m_renderer.set_stereo_eye (0, 0.0);
 
       graphics_object fig (go.get_ancestor ("figure"));
 
@@ -218,6 +228,12 @@ GLWidget::drawZoomBox (const QPoint& p1, const QPoint& p2)
 void
 GLWidget::paintGL ()
 {
+  if (m_stereo)
+    m_stereo_eye = (currentTargetBuffer () == QOpenGLWidget::RightBuffer
+                    ? 1 : -1);
+  else
+    m_stereo_eye = 0;
+
   m_parent_canvas.canvasPaintEvent ();
 }
 
@@ -305,8 +321,16 @@ GLWidget::end_rendering ()
 
 GLCanvas::GLCanvas (octave::interpreter& interp,
                     const graphics_handle& gh, QWidget *parent)
-  : Canvas (interp, gh), m_glwidget (new GLWidget (*this, parent))
-{ }
+  : Canvas (interp, gh), m_glwidget (nullptr)
+{
+  gh_manager& gh_mgr = interp.get_gh_manager ();
+  octave::autolock guard (gh_mgr.graphics_lock ());
+  graphics_object go = gh_mgr.get_object (gh);
+  const auto *fp
+    = dynamic_cast<const figure::properties *> (&go.get_properties ());
+
+  m_glwidget = new GLWidget (*this, parent, fp && fp->is_stereo ());
+}
 
 GLCanvas::~GLCanvas ()
 {
