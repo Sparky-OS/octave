@@ -3268,6 +3268,8 @@ public:
       callback_property resizefcn , Matrix ()
       radio_property selectiontype , "{normal}|extend|alt|open"
       callback_property sizechangedfcn , Matrix ()
+      bool_property stereo , "off"
+      double_property stereoeyeseparation , 0.05
       radio_property toolbar , "{auto}|figure|none"
       radio_property units Su , "{pixels}|normalized|inches|centimeters|points|characters"
       callback_property windowbuttondownfcn , Matrix ()

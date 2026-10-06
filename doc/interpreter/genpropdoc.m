@@ -709,6 +709,26 @@ Double Left-click.\n\
         s.valid = valid_fcn;
         s.category = "Mouse Interaction";
 
+      case "stereo"
+        s.doc = "Control whether the figure is drawn in stereo 3D.  When \
+__prop__ is @qcode{\"on\"}, the figure asks for a stereo (quad-buffer) \
+OpenGL surface and draws each 3D axes twice, once for the left and once for \
+the right eye, from the same view moved sideways and refocused on the camera \
+target.  The target of the camera stays at the depth of the screen, nearer \
+points shift one way and farther points the other.  2D axes, legends and \
+colorbars, and everything outside the axes are drawn identically for both \
+eyes.  Printing and saving draw one view.  The property is read when the figure window is created, so set it with \
+@code{figure (@dots{}, \"stereo\", \"on\")}.  The default is @qcode{\"off\"}, \
+which draws the figure exactly as before.";
+        s.category = "Appearance";
+
+      case "stereoeyeseparation"
+        s.doc = "Strength of the stereo effect, as the sideways shift of each \
+eye per unit of depth, summed over both eyes.  Larger values give a deeper \
+image.  It has no effect unless the @code{stereo} property is \
+@qcode{\"on\"}.";
+        s.category = "Appearance";
+
       case "toolbar"
         s.doc = "Control the display of the toolbar (along the bottom of the \
 menubar) and the status bar.  When set to @qcode{\"auto\"}, the display is \
