@@ -56,6 +56,11 @@ public:
 
   virtual void set_viewport (int w, int h);
   virtual void set_device_pixel_ratio (double dpr) { m_devpixratio = dpr; }
+  void set_stereo_eye (int eye, double separation)
+  {
+    m_stereo_eye = eye;
+    m_stereo_separation = separation;
+  }
   virtual Matrix get_viewport_scaled () const;
   virtual graphics_xform get_transform () const { return m_xform; }
   virtual uint8NDArray get_pixels (int width, int height);
@@ -252,6 +257,20 @@ private:
 
   // Indicate we are drawing for selection purpose
   bool m_selecting;
+
+  // Stereo eye selection for 3D axes
+  int m_stereo_eye;
+  double m_stereo_separation;
+
+  // Shear of the current axes for this eye and the depth it leaves at rest
+  double m_stereo_shear;
+  double m_stereo_depth;
+  double m_stereo_xscale;
+
+  // Sideways shift in window coordinates of a point drawn there (markers
+  // and text) so it follows the shear of the axes it belongs to
+  double stereo_shift (double z) const
+  { return m_stereo_xscale * m_stereo_shear * (-z - m_stereo_depth); }
 
   // Indicate we are drawing for printing purpose
   bool m_printing;

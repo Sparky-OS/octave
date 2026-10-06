@@ -692,7 +692,9 @@ opengl_renderer::opengl_renderer (opengl_functions& glfcns)
     m_xZ1 (), m_xZ2 (), m_marker_id (), m_filled_marker_id (),
     m_camera_pos (), m_camera_dir (), m_view_vector (),
     m_interpreter ("none"), m_txt_renderer (), m_current_light (0),
-    m_max_lights (0), m_selecting (false), m_printing (false)
+    m_max_lights (0), m_selecting (false), m_stereo_eye (0),
+    m_stereo_separation (0.0), m_stereo_shear (0.0),
+    m_stereo_depth (0.0), m_stereo_xscale (1.0), m_printing (false)
 {
   // This constructor will fail if we don't have OpenGL or if the data
   // types we assumed in our public interface aren't compatible with the
@@ -1313,6 +1315,13 @@ opengl_renderer::setup_opengl_transformation (const axes::properties& props)
 
   Matrix x_mat1 = props.get_opengl_matrix_1 ();
   Matrix x_mat2 = props.get_opengl_matrix_2 ();
+  Matrix camera_target = props.get_cameratarget ().matrix_value ();
+  ColumnVector target_position (4, 1.0);
+  target_position(0) = camera_target(0);
+  target_position(1) = camera_target(1);
+  target_position(2) = camera_target(2);
+  target_position = x_mat2 * x_mat1 * target_position;
+  double target_depth = -target_position(2);
 
   m_glfcns.glMatrixMode (GL_MODELVIEW);
   m_glfcns.glLoadIdentity ();
@@ -1324,6 +1333,23 @@ opengl_renderer::setup_opengl_transformation (const axes::properties& props)
   Matrix vp = get_viewport_scaled ();
   m_glfcns.glOrtho (0, vp(2), vp(3), 0, m_xZ1, m_xZ2);
   m_glfcns.glMultMatrixd (x_mat2.data ());
+
+  // The shear of an eye acts on the camera coordinates, before x_mat2
+  m_stereo_shear = 0.0;
+  m_stereo_depth = target_depth;
+  m_stereo_xscale = x_mat2(0, 0);
+  if (m_stereo_eye != 0 && ! props.get_is2D (true))
+    {
+      m_stereo_shear = -m_stereo_eye * m_stereo_separation / 2.0;
+      GLdouble stereo_matrix[16] =
+        {
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          m_stereo_shear, 0.0, 1.0, 0.0,
+          -m_stereo_shear * target_depth, 0.0, 0.0, 1.0
+        };
+      m_glfcns.glMultMatrixd (stereo_matrix);
+    }
   m_glfcns.glMatrixMode (GL_MODELVIEW);
 
   m_glfcns.glClear (GL_DEPTH_BUFFER_BIT);
@@ -4014,7 +4040,8 @@ opengl_renderer::draw_text_background (const text::properties& props,
   set_ortho_coordinates ();
 
   // Translate coordinates so that the text anchor is (0,0)
-  m_glfcns.glTranslated (pixpos(0), pixpos(1), -pixpos(2));
+  m_glfcns.glTranslated (pixpos(0) + stereo_shift (pixpos(2)), pixpos(1),
+                         -pixpos(2));
 
   // FIXME: Only multiples of 90° are handled by the text renderer.
   //        Handle others here.
@@ -4562,7 +4589,7 @@ opengl_renderer::draw_marker (double x, double y, double z,
   ColumnVector tmp = m_xform.transform (x, y, z, false);
 
   m_glfcns.glLoadIdentity ();
-  m_glfcns.glTranslated (tmp(0), tmp(1), -tmp(2));
+  m_glfcns.glTranslated (tmp(0) + stereo_shift (tmp(2)), tmp(1), -tmp(2));
 
   if (m_filled_marker_id > 0 && fc.numel () > 0)
     {
@@ -4983,7 +5010,8 @@ opengl_renderer::render_text (uint8NDArray pixels, Matrix bbox,
   set_ortho_coordinates ();
 
   // Translate coordinates so that the text anchor is (0,0)
-  m_glfcns.glTranslated (pixpos(0), pixpos(1), -pixpos(2));
+  m_glfcns.glTranslated (pixpos(0) + stereo_shift (pixpos(2)), pixpos(1),
+                         -pixpos(2));
 
   m_glfcns.glRotated (-rotation, 0.0, 0.0, 1.0);
 
