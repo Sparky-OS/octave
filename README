@@ -1,3 +1,32 @@
+Sparky Stereo OS
+----------------
+
+This is Sparky Stereo OS's stereo work on GNU Octave, forked from
+gnu-octave/octave (https://github.com/gnu-octave/octave), the mirror of
+https://www.octave.org/hg/octave. A figure can be drawn for each eye: the
+figure property "stereo" (off by default) and "stereoeyeseparation" give the
+figure an OpenGL quad-buffer stereo window, and the axes of a 3D view are drawn
+once for each eye, one world and two cameras. Without the property nothing
+changes; on Sparky Stereo OS the desktop shows the stereo window on any 3D
+display.
+
+Where it comes from:
+
+* GNU Octave (https://octave.org) was written by John W. Eaton and is developed
+  by the Octave Project Developers; see doc/interpreter/contributors.in.
+* Debian (https://www.debian.org/) is the base of the system.
+* SparkyLinux (https://sparkylinux.org/), by Paweł "pavroo" Pijanowski, builds
+  on Debian.
+* Sparky Stereo OS (https://github.com/Sparky-OS/sparky-stereo-os) is the stereo
+  3D edition of SparkyLinux: SparkyOS, powered by Debian.
+
+The stereo3d branch holds this work on GNU Octave 11.3.0, the version the
+distribution builds (octave 11.3.0-1+stereo3d1). The licence is unchanged; see
+COPYING.
+
+Sparky Stereo OS, Daniel Ramos's edition of SparkyLinux (by Paweł "pavroo" Pijanowski).
+
+
 GNU Octave -- a high-level language for numerical computations
 ==============================================================
 
